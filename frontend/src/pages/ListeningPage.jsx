@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { Transcript } from '../components/Transcript';
@@ -112,15 +112,33 @@ export function ListeningPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-surface flex items-center justify-center"><p className="text-slate-600">Starting session...</p></div>;
-  if (error) return <div className="min-h-screen bg-surface p-6"><p className="text-red-600">{error}</p><button type="button" onClick={() => navigate('/')} className="mt-4 text-primary">Back</button></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-surface)] flex items-center justify-center">
+        <p className="text-[var(--color-text-muted)]">Starting session...</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[var(--color-surface)] p-6">
+        <p className="text-red-600">{error}</p>
+        <button type="button" onClick={() => navigate('/')} className="mt-4 text-[var(--color-primary)] hover:underline">Back to home</button>
+      </div>
+    );
+  }
 
   if (finished && scoreReport) {
     return (
-      <div className="min-h-screen bg-surface p-6">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-[var(--color-surface)] p-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex justify-end mb-4">
+            <Link to="/" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">
+              Quit
+            </Link>
+          </div>
           <ScoreReportView report={scoreReport} />
-          <button type="button" onClick={() => navigate('/')} className="mt-6 text-primary hover:underline">Back to home</button>
+          <button type="button" onClick={() => navigate('/')} className="mt-6 text-[var(--color-primary)] hover:underline font-medium">Back to home</button>
         </div>
       </div>
     );
@@ -130,21 +148,43 @@ export function ListeningPage() {
   let audioSrc = currentItem?.audio_source || currentItem?.audio_url || '';
   if (audioSrc && !audioSrc.startsWith('http')) audioSrc = `${apiOrigin}${audioSrc}`;
 
+  const testTitle = session?.test?.title || 'Test';
+  const itemType = currentItem?.item_type === 'lecture' ? 'Lecture' : 'Conversation';
+
   return (
-    <div className="min-h-screen bg-surface p-4 md:p-6">
+    <div className="min-h-screen bg-[var(--color-surface)] p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <button type="button" onClick={() => navigate('/')} className="text-primary hover:underline text-sm">← Exit</button>
-          <span className="text-slate-500 text-sm">Question {questionIndex + 1} of {questionsList.length}</span>
-        </div>
+        {/* Figma-style header: title, REAL 1, listening • Number 1, Volume, Quit */}
+        <header className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-lg font-bold text-[var(--color-text)]">
+              {mode === 'practice' ? 'Practice mode' : 'Exam Mode'}
+            </h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+              {testTitle} · listening · Number {questionIndex + 1}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--color-text-muted)]">Volume</span>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              Quit
+            </Link>
+          </div>
+        </header>
 
         {currentItem && (
           <>
-            <div className="mb-4">
+            <div className="mb-6">
               <AudioPlayer
                 src={audioSrc}
                 sessionId={session?.id}
                 logEvent={logEvent}
+                itemLabel={itemType}
               />
             </div>
             <div className="mb-6">
@@ -161,18 +201,29 @@ export function ListeningPage() {
               disabled={false}
               feedback={feedback}
               mode={mode}
+              questionIndex={questionIndex}
+              totalQuestions={questionsList.length}
             />
           </div>
         )}
 
+        {/* Fallback Continue/Finish when QuestionCard doesn't show it */}
         {mode === 'practice' && feedback && !isLastQuestion && (
-          <button type="button" onClick={goToNext} className="mb-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover font-medium">Next question</button>
+          <div className="flex justify-end">
+            <button type="button" onClick={goToNext} className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">
+              Continue →
+            </button>
+          </div>
         )}
         {isLastQuestion && (feedback || mode === 'exam') && (
-          <button type="button" onClick={handleFinish} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover font-medium">Finish</button>
+          <div className="flex justify-end">
+            <button type="button" onClick={handleFinish} className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">
+              Finish
+            </button>
+          </div>
         )}
 
-        {questionsList.length === 0 && <p className="text-slate-500">No questions in this test.</p>}
+        {questionsList.length === 0 && <p className="text-[var(--color-text-muted)]">No questions in this test.</p>}
       </div>
     </div>
   );

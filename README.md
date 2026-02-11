@@ -10,8 +10,15 @@ python -m venv .venv
 .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py load_sample_data   # 5 tests, 6 items, 10 questions (optional)
 python manage.py createsuperuser   # optional, for admin
 python manage.py runserver
+```
+
+برای پر کردن دیتابیس با دادهٔ نمونه (بدون ورود دستی):
+```bash
+python manage.py load_sample_data        # فقط اگر هیچ تستی نداری
+python manage.py load_sample_data --clear   # پاک کردن تست‌های قبلی و لود مجدد
 ```
 
 API base: `http://localhost:8000/api`. JWT: `POST /api/auth/token/` with `username`, `password`.
