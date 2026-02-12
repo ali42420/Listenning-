@@ -40,6 +40,8 @@ class ListeningItem(models.Model):
     test = models.ForeignKey(ListeningTest, on_delete=models.CASCADE, related_name='items')
     audio = models.FileField(upload_to='audio/%Y/%m/', blank=True, null=True)
     audio_url = models.URLField(max_length=500, blank=True)
+    thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/', blank=True, null=True)
+    thumbnail_url = models.URLField(max_length=500, blank=True)
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='medium')
     topic_tag = models.CharField(max_length=100, blank=True)
     transcript = models.TextField(blank=True)
@@ -55,6 +57,14 @@ class ListeningItem(models.Model):
     @property
     def audio_source(self):
         return self.audio_url or (self.audio.url if self.audio else '')
+
+    @property
+    def thumbnail_source(self):
+        if self.thumbnail_url:
+            return self.thumbnail_url
+        if self.thumbnail:
+            return self.thumbnail.url
+        return ''
 
 
 class Question(models.Model):

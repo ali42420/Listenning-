@@ -39,9 +39,14 @@ class QuestionInline(admin.StackedInline):
 
 @admin.register(ListeningItem)
 class ListeningItemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'test', 'item_type', 'difficulty', 'order']
+    list_display = ['id', 'test', 'item_type', 'difficulty', 'order', 'has_thumbnail']
     list_filter = ['item_type', 'difficulty']
     inlines = [QuestionInline]
+
+    def has_thumbnail(self, obj):
+        return bool(obj.thumbnail_source)
+    has_thumbnail.boolean = True
+    has_thumbnail.short_description = 'Thumbnail'
 
 
 @admin.register(Question)

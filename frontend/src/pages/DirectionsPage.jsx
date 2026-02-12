@@ -104,12 +104,12 @@ export function DirectionsPage() {
           </div>
 
           {/* Timer Rule */}
-          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 mb-8">
+          <div className="rounded-xl bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/50 p-4 mb-8">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <svg className="w-5 h-5 text-[var(--color-primary)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <div>
                 <p className="text-sm font-semibold text-[var(--color-text)]">TIMER RULE</p>
-                <p className="text-sm text-[var(--color-text-muted)] mt-1">The clock does <strong className="text-red-600">not run</strong> while you are listening to the conversations and lectures. The clock only runs while you are answering the questions.</p>
+                <p className="text-sm text-[var(--color-text-muted)] mt-1">The clock does <strong className="text-[var(--color-coral)]">not run</strong> while you are listening to the conversations and lectures. The clock only runs while you are answering the questions.</p>
               </div>
             </div>
           </div>

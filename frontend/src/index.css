@@ -18,21 +18,21 @@
   --color-practice-border: #C97A79;
 }
 
-/* Dark mode – same palette, inverted roles */
+/* Dark mode – professional slate/blue-grey palette, easy on the eyes */
 .dark {
-  --color-primary: #5B7BC4;
-  --color-primary-soft: #3A5BA0;
-  --color-accent: #FFD85C;
-  --color-accent-hover: #EBC84A;
-  --color-coral: #E8A09F;
-  --color-surface: #0B0754;
-  --color-card: #12106A;
-  --color-border: #2A2880;
-  --color-text: #B0CAFF;
-  --color-text-muted: #7A9AD4;
-  --color-selected: #2A2880;
-  --color-practice: #DE8F8E;
-  --color-practice-border: #E8A09F;
+  --color-primary: #38bdf8;
+  --color-primary-soft: #0ea5e9;
+  --color-accent: #fbbf24;
+  --color-accent-hover: #f59e0b;
+  --color-coral: #f87171;
+  --color-surface: #0f172a;
+  --color-card: #1e293b;
+  --color-border: #334155;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-selected: #1e3a5f;
+  --color-practice: #fb923c;
+  --color-practice-border: #f97316;
 }
 
 body {

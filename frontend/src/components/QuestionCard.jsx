@@ -42,13 +42,13 @@ export function QuestionCard({
           const isSelected = selectedId === opt.id;
           const showCorrect = showFeedback && feedback.correct_option_id === opt.id;
           const showWrong = showFeedback && isSelected && !feedback.is_correct;
-          let bg = 'bg-white hover:bg-[var(--color-surface)] border-[var(--color-border)]';
+          let bg = 'bg-[var(--color-surface)] hover:bg-[var(--color-selected)] border-[var(--color-border)]';
           let ring = '';
           if (showCorrect) {
-            bg = 'bg-green-50 border-green-500';
+            bg = 'bg-green-500/15 border-green-500 dark:bg-green-500/20';
             ring = 'ring-2 ring-green-500';
           } else if (showWrong) {
-            bg = 'bg-red-50 border-red-400';
+            bg = 'bg-red-500/15 border-red-400 dark:bg-red-500/20';
             ring = 'ring-2 ring-red-400';
           } else if (isSelected) {
             bg = 'bg-[var(--color-selected)] border-[var(--color-primary)]';
@@ -70,8 +70,8 @@ export function QuestionCard({
               </span>
               <span className="font-medium text-[var(--color-text-muted)]">{opt.label}.</span>
               <span className="text-[var(--color-text)]">{opt.text}</span>
-              {showCorrect && <span className="ml-2 text-green-600 font-medium">✓ Correct</span>}
-              {showWrong && <span className="ml-2 text-red-600">✗</span>}
+              {showCorrect && <span className="ml-2 text-green-600 dark:text-green-400 font-medium">✓ Correct</span>}
+              {showWrong && <span className="ml-2 text-red-600 dark:text-red-400">✗</span>}
             </button>
           );
         })}
@@ -83,17 +83,19 @@ export function QuestionCard({
         </div>
       )}
       {!submitted && selectedId && (
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={disabled}
-          className="mt-5 px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition"
-        >
-          Submit Answer
-        </button>
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={disabled}
+            className="px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition"
+          >
+            Submit Answer
+          </button>
+        </div>
       )}
 
-      {/* Navigatable question numbers: answered = filled blue, unanswered = hollow */}
+      {/* Navigatable question numbers: answered = filled, unanswered = hollow; current has ring */}
       {totalQuestions > 0 && (
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-[var(--color-border)]">
           {Array.from({ length: totalQuestions }, (_, i) => {
@@ -104,11 +106,11 @@ export function QuestionCard({
                 key={i}
                 type="button"
                 onClick={() => onSelectQuestion?.(i)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition border-2 ring-offset-2 ring-offset-[var(--color-card)] ${
                   isAnswered
-                    ? 'bg-[var(--color-primary)] text-white border-2 border-[var(--color-primary)]'
-                    : 'bg-transparent text-[var(--color-text-muted)] border-2 border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-text)]'
-                } ${isCurrent ? 'ring-2 ring-[var(--color-primary)] ring-offset-2' : ''}`}
+                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-text)]'
+                } ${isCurrent ? 'ring-2 ring-[var(--color-primary)]' : ''}`}
                 aria-label={`Question ${i + 1}`}
               >
                 {i + 1}

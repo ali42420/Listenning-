@@ -225,12 +225,12 @@ export default function AudioPlayer({
     <>
       <audio ref={audioRef} src={audioSrc} preload="auto" />
       <div className="rounded-2xl bg-[var(--color-card)] shadow-lg border-2 border-[var(--color-selected)] overflow-hidden">
-        {/* Image area with overlay label */}
-        <div className="relative aspect-video bg-[var(--color-surface)] overflow-hidden">
+        {/* Image area with overlay label – thumbnail shown smaller inside container */}
+        <div className="relative aspect-video bg-[var(--color-surface)] overflow-hidden flex items-center justify-center p-4">
           {imageUrl ? (
-            <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+            <img src={imageUrl} alt="" className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-primary)]/5">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-primary)]/5">
               {itemType === 'lecture' ? (
                 <LectureIllustration className="w-32 h-full max-h-28 text-[var(--color-primary)]/40 object-contain" />
               ) : (
@@ -238,7 +238,7 @@ export default function AudioPlayer({
               )}
             </div>
           )}
-          <span className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-sm font-medium">
+          <span className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-sm font-medium">
             {displayLabel}
           </span>
         </div>

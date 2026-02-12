@@ -34,12 +34,14 @@ class QuestionSerializer(serializers.ModelSerializer):
 class ListeningItemSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
     audio_source = serializers.ReadOnlyField()
+    thumbnail_source = serializers.ReadOnlyField()
 
     class Meta:
         model = ListeningItem
         fields = [
-            'id', 'audio', 'audio_url', 'audio_source', 'difficulty', 'topic_tag',
-            'transcript', 'item_type', 'order', 'questions',
+            'id', 'audio', 'audio_url', 'audio_source',
+            'thumbnail', 'thumbnail_url', 'thumbnail_source',
+            'difficulty', 'topic_tag', 'transcript', 'item_type', 'order', 'questions',
         ]
 
 
