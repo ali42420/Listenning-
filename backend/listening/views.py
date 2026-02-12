@@ -1,10 +1,12 @@
+from django.db.models import Count
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 
-from .models import ListeningTest, ListeningSession, ListeningItem
+from .models import ListeningTest, ListeningSession, ListeningItem, UserAnswer
 from .serializers import (
     ListeningTestListSerializer,
     ListeningTestDetailSerializer,
@@ -140,7 +142,31 @@ class SessionFinishView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         report = ListeningService.finish_session(session.id)
-        return Response(ScoreReportSerializer(report).data)
+        data = dict(ScoreReportSerializer(report).data)
+        answers = (
+            UserAnswer.objects.filter(session=session)
+            .select_related('question', 'selected_option')
+            .order_by('question__order')
+        )
+        total_questions = session.test.items.aggregate(
+            total=Count('questions')
+        ).get('total') or 0
+        answered_count = answers.count()
+        correct_count = sum(1 for a in answers if a.is_correct)
+        detailed = []
+        for i, ua in enumerate(answers, start=1):
+            correct_option = ua.question.options.filter(is_correct=True).first()
+            detailed.append({
+                'id': i,
+                'question_text': ua.question.text,
+                'correct_answer': correct_option.text if correct_option else '—',
+                'your_answer': ua.selected_option.text if ua.selected_option else '—',
+            })
+        data['answered_count'] = answered_count
+        data['correct_count'] = correct_count
+        data['total_questions'] = total_questions
+        data['detailed_answers'] = detailed
+        return Response(data)
 
 
 class ItemDetailView(APIView):

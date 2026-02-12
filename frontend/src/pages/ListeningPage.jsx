@@ -29,6 +29,53 @@ const IconButton = ({ onClick, children, label }) => (
   </button>
 );
 
+function ReviewModalContent({ answersForReview }) {
+  if (!answersForReview || answersForReview.length === 0) {
+    return (
+      <p className="text-[var(--color-text-muted)] text-sm">
+        Review your answers and notes after completing the questions. Your review will appear here as you submit answers.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-[var(--color-text-muted)] text-sm">
+        Review your answers and notes after completing the questions.
+      </p>
+      <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+              <th className="px-3 py-2 font-semibold text-[var(--color-text)]">ID</th>
+              <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Question</th>
+              <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Correct Answer</th>
+              <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Your Answer</th>
+              <th className="px-2 py-2 font-semibold text-[var(--color-text)] w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {answersForReview.map((row) => (
+              <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0">
+                <td className="px-3 py-2 text-[var(--color-text-muted)]">{row.id}</td>
+                <td className="px-3 py-2 text-[var(--color-text)] max-w-[200px] truncate" title={row.questionText}>{row.questionText}</td>
+                <td className="px-3 py-2 text-[var(--color-text-muted)] max-w-[140px] truncate" title={row.correctAnswer}>{row.correctAnswer}</td>
+                <td className="px-3 py-2 text-[var(--color-text-muted)] max-w-[140px] truncate" title={row.yourAnswer}>{row.yourAnswer}</td>
+                <td className="px-2 py-2">
+                  {row.isCorrect ? (
+                    <span className="text-green-600 font-medium">✓</span>
+                  ) : (
+                    <span className="text-red-500">✗</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function ListeningPage() {
   const [searchParams] = useSearchParams();
   const testId = searchParams.get('testId');
@@ -48,6 +95,7 @@ export function ListeningPage() {
   const [phase, setPhase] = useState('player'); // 'player' | 'questions'
   const [modal, setModal] = useState(null);   // 'review' | 'transcript' | 'settings' | null
   const [settingsSnapshot, setSettingsSnapshot] = useState(() => loadSettings());
+  const [answersForReview, setAnswersForReview] = useState([]); // { id, questionText, yourAnswer, correctAnswer, isCorrect }
   const answerStartRef = useRef(null);
 
   const isListeningActive = phase === 'player' || phase === 'questions';
@@ -116,6 +164,19 @@ export function ListeningPage() {
     api.submitAnswer(session.id, currentQ.id, optionId, responseTimeMs)
       .then((res) => {
         setFeedback(res);
+        const options = currentQ.options || [];
+        const yourText = options.find((o) => o.id === optionId)?.text ?? '—';
+        const correctText = options.find((o) => o.id === res.correct_option_id)?.text ?? '—';
+        setAnswersForReview((prev) => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            questionText: currentQ.text,
+            yourAnswer: yourText,
+            correctAnswer: correctText,
+            isCorrect: res.is_correct,
+          },
+        ]);
         if (isLastQuestion) return;
         setQuestionIndex((i) => i + 1);
         setFeedback(null);
@@ -161,19 +222,7 @@ export function ListeningPage() {
   }
 
   if (finished && scoreReport) {
-    return (
-      <div className="min-h-screen bg-[var(--color-surface)] p-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex justify-end mb-4">
-            <Link to="/" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">
-              Quit
-            </Link>
-          </div>
-          <ScoreReportView report={scoreReport} />
-          <button type="button" onClick={() => navigate('/')} className="mt-6 text-[var(--color-primary)] hover:underline font-medium">Back to home</button>
-        </div>
-      </div>
-    );
+    return <ScoreReportView report={scoreReport} />;
   }
 
   const apiOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
@@ -257,7 +306,7 @@ export function ListeningPage() {
         )}
         {mode !== 'exam' && (
           <Modal open={modal === 'review'} onClose={() => setModal(null)} title="Review">
-            <p className="text-[var(--color-text-muted)] text-sm">Review your answers and notes after completing the questions.</p>
+            <ReviewModalContent answersForReview={answersForReview} />
           </Modal>
         )}
         {mode !== 'exam' && (
@@ -343,7 +392,7 @@ export function ListeningPage() {
       )}
       {mode !== 'exam' && (
         <Modal open={modal === 'review'} onClose={() => setModal(null)} title="Review">
-          <p className="text-[var(--color-text-muted)] text-sm">Review your answers after finishing the section.</p>
+          <ReviewModalContent answersForReview={answersForReview} />
         </Modal>
       )}
       {mode !== 'exam' && (
