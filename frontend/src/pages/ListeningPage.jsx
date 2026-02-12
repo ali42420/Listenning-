@@ -6,6 +6,7 @@ import { QuestionCard } from '../components/QuestionCard';
 import { ScoreReportView } from '../components/ScoreReportView';
 import { Modal } from '../components/Modal';
 import { SettingsModal } from '../components/SettingsModal';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { loadSettings } from '../lib/settings';
 import { useBackgroundNoise } from '../hooks/useBackgroundNoise';
 
@@ -15,6 +16,12 @@ function flattenQuestions(allItems) {
     (item.questions || []).forEach((q) => list.push({ ...q, itemId: item.id, item }));
   });
   return list;
+}
+
+function formatElapsed(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 const IconButton = ({ onClick, children, label }) => (
@@ -28,6 +35,73 @@ const IconButton = ({ onClick, children, label }) => (
     {children}
   </button>
 );
+
+function AnalysisModalContent({ feedback, currentQuestion }) {
+  const [view, setView] = useState('brief');
+  const correctLabel = currentQuestion?.options?.find((o) => o.id === feedback?.correct_option_id)?.label ?? '—';
+  const explanation = feedback?.explanation ?? '';
+
+  if (!feedback || !explanation) {
+    return (
+      <p className="text-[var(--color-text-muted)] text-sm">
+        Submit your answer to see the analysis and explanation.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setView('brief')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+            view === 'brief'
+              ? 'bg-[var(--color-accent)] text-[var(--color-text)] border border-[var(--color-primary)]/20'
+              : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+          }`}
+        >
+          brief
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('comprehensive')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+            view === 'comprehensive'
+              ? 'bg-[var(--color-primary)] text-white border border-[var(--color-primary)]'
+              : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+          }`}
+        >
+          comprehensive
+        </button>
+      </div>
+      <p className="text-[var(--color-primary)] font-semibold">Correct Answer: {correctLabel}</p>
+      <div className="text-[var(--color-text)] text-sm leading-relaxed whitespace-pre-wrap">
+        {view === 'brief' ? explanation.split(/\n\n/)[0] || explanation : explanation}
+      </div>
+    </div>
+  );
+}
+
+function AnswerModalContent({ question }) {
+  const correctOption = question?.options?.find((o) => o.is_correct);
+  if (!question) {
+    return <p className="text-[var(--color-text-muted)] text-sm">No question loaded.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-[var(--color-text)] font-medium">{question.text}</p>
+      {correctOption ? (
+        <div className="rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-surface)] p-4">
+          <p className="text-[var(--color-primary)] font-semibold mb-1">Correct Answer: {correctOption.label}</p>
+          <p className="text-[var(--color-text)] text-sm">{correctOption.text}</p>
+        </div>
+      ) : (
+        <p className="text-[var(--color-text-muted)] text-sm">No correct answer defined.</p>
+      )}
+    </div>
+  );
+}
 
 function ReviewModalContent({ answersForReview }) {
   if (!answersForReview || answersForReview.length === 0) {
@@ -76,7 +150,21 @@ function ReviewModalContent({ answersForReview }) {
   );
 }
 
-export function ListeningPage() {
+// Group answers by stage for the full Review phase page
+function groupAnswersByStage(answersForReview) {
+  const byStage = new Map();
+  (answersForReview || []).forEach((row) => {
+    const stageKey = row.stageIndex ?? 0;
+    const label = row.stageLabel ?? 'Section';
+    if (!byStage.has(stageKey)) byStage.set(stageKey, { label, rows: [] });
+    byStage.get(stageKey).rows.push(row);
+  });
+  return Array.from(byStage.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([idx, { label, rows }]) => ({ stageIndex: idx + 1, stageLabel: label, rows }));
+}
+
+export default function ListeningPage() {
   const [searchParams] = useSearchParams();
   const testId = searchParams.get('testId');
   const mode = searchParams.get('mode') || 'practice';
@@ -84,29 +172,36 @@ export function ListeningPage() {
 
   const [session, setSession] = useState(null);
   const [allItems, setAllItems] = useState([]);
-  const [currentItem, setCurrentItem] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [currentItemIndex, setCurrentItemIndex] = useState(0); // stage index (0-based)
   const [questionIndex, setQuestionIndex] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [finished, setFinished] = useState(false);
   const [scoreReport, setScoreReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [phase, setPhase] = useState('player'); // 'player' | 'questions'
+  const [phase, setPhase] = useState('player'); // 'player' | 'questions' | 'review'
   const [modal, setModal] = useState(null);   // 'review' | 'transcript' | 'settings' | null
   const [settingsSnapshot, setSettingsSnapshot] = useState(() => loadSettings());
-  const [answersForReview, setAnswersForReview] = useState([]); // { id, questionText, yourAnswer, correctAnswer, isCorrect }
+  const [answersForReview, setAnswersForReview] = useState([]); // { id, questionText, yourAnswer, correctAnswer, isCorrect, stageIndex, stageLabel }
+  const [lastAnalysisFeedback, setLastAnalysisFeedback] = useState(null);
+  const [lastAnalysisQuestion, setLastAnalysisQuestion] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const answerStartRef = useRef(null);
+  const sessionStartRef = useRef(null);
 
-  const isListeningActive = phase === 'player' || phase === 'questions';
+  const isListeningActive = phase === 'player' || phase === 'questions'; // review phase does not play background
   useBackgroundNoise(
     isListeningActive && settingsSnapshot.exam.playBackgroundNoise,
     settingsSnapshot.exam.backgroundNoiseVolume
   );
 
-  const questionsList = flattenQuestions(allItems);
-  const currentQ = questionsList[questionIndex] || null;
-  const isLastQuestion = questionIndex >= questionsList.length - 1 && questionsList.length > 0;
+  // Per-stage flow: current item and only this stage's questions
+  const currentItem = allItems[currentItemIndex] ?? null;
+  const questionsList = (currentItem?.questions || []).map((q) => ({ ...q, itemId: currentItem?.id, item: currentItem }));
+  const currentQ = questionsList[questionIndex] ?? null;
+  const isLastQuestionOfStage = questionsList.length > 0 && questionIndex >= questionsList.length - 1;
+  const isLastStage = currentItemIndex >= (allItems.length - 1) && allItems.length > 0;
+  const isLastQuestion = isLastQuestionOfStage && isLastStage;
 
   const logEvent = useCallback((sid, eventType, count, extra) => {
     api.logEvent(sid, eventType, count, extra).catch(() => {});
@@ -122,23 +217,25 @@ export function ListeningPage() {
       .then((data) => {
         setSession(data.session);
         setAllItems(data.all_items || []);
-        setCurrentItem(data.current_item || null);
-        setCurrentQuestion(data.current_question || null);
+        setCurrentItemIndex(0);
         setQuestionIndex(0);
         setPhase('player');
+        sessionStartRef.current = Date.now();
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [testId, mode]);
 
+  // Elapsed timer (updates every second while session active and not finished)
   useEffect(() => {
-    if (!session || !allItems?.length) return;
-    const list = flattenQuestions(allItems);
-    const q = list[questionIndex];
-    if (!q) return;
-    setCurrentItem(q.item || null);
-    setCurrentQuestion(q);
-  }, [session?.id, questionIndex, allItems]);
+    if (!session?.id || finished) return;
+    const interval = setInterval(() => {
+      if (sessionStartRef.current) {
+        setElapsedSeconds(Math.floor((Date.now() - sessionStartRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [session?.id, finished]);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -164,9 +261,12 @@ export function ListeningPage() {
     api.submitAnswer(session.id, currentQ.id, optionId, responseTimeMs)
       .then((res) => {
         setFeedback(res);
+        setLastAnalysisFeedback(res);
+        setLastAnalysisQuestion(currentQ);
         const options = currentQ.options || [];
         const yourText = options.find((o) => o.id === optionId)?.text ?? '—';
         const correctText = options.find((o) => o.id === res.correct_option_id)?.text ?? '—';
+        const stageLabel = currentItem?.item_type === 'lecture' ? 'Lecture' : 'Conversation';
         setAnswersForReview((prev) => [
           ...prev,
           {
@@ -175,11 +275,20 @@ export function ListeningPage() {
             yourAnswer: yourText,
             correctAnswer: correctText,
             isCorrect: res.is_correct,
+            stageIndex: currentItemIndex,
+            stageLabel,
           },
         ]);
-        if (isLastQuestion) return;
-        setQuestionIndex((i) => i + 1);
-        setFeedback(null);
+        // Don't auto-advance from last question of section: show "Continue to next section" so user can see it
+        if (isLastQuestionOfStage) {
+          // Leave phase as 'questions' and show the continue button; user clicks to advance
+          if (currentItemIndex >= allItems.length - 1) {
+            // Actually last section; no next section, keep feedback for Finish button
+          }
+        } else {
+          setQuestionIndex((i) => i + 1);
+          setFeedback(null);
+        }
       })
       .catch((e) => setError(e.message));
   };
@@ -225,6 +334,70 @@ export function ListeningPage() {
     return <ScoreReportView report={scoreReport} />;
   }
 
+  // ---------- Phase: Review (after all 25 questions, before score) ----------
+  if (phase === 'review') {
+    const stagesGrouped = groupAnswersByStage(answersForReview);
+    return (
+      <div className="min-h-screen bg-[var(--color-surface)] flex flex-col">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-card)]">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-[var(--color-text)]">+ Test Prep Pro</span>
+            <span className="text-sm font-mono text-[var(--color-text-muted)] tabular-nums">{formatElapsed(elapsedSeconds)}</span>
+          </div>
+          <Link to="/" className="px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">Quit</Link>
+        </header>
+        <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
+          <h1 className="text-xl font-bold text-[var(--color-text)] mb-1">Review your answers</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mb-6">
+            You answered 25 questions in 5 stages. Review below, then see your score.
+          </p>
+          <div className="space-y-8">
+            {stagesGrouped.map(({ stageIndex, stageLabel, rows }) => (
+              <div key={stageIndex} className="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-card)]">
+                <div className="px-4 py-3 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+                  <span className="font-semibold text-[var(--color-text)]">Stage {stageIndex} of 5 — {stageLabel}</span>
+                </div>
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+                      <th className="px-3 py-2 font-semibold text-[var(--color-text)] w-10">#</th>
+                      <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Question</th>
+                      <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Correct</th>
+                      <th className="px-3 py-2 font-semibold text-[var(--color-text)]">Your answer</th>
+                      <th className="px-2 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.id} className="border-b border-[var(--color-border)] last:border-0">
+                        <td className="px-3 py-2 text-[var(--color-text-muted)]">{row.id}</td>
+                        <td className="px-3 py-2 text-[var(--color-text)] max-w-[240px]" title={row.questionText}>{row.questionText.length > 60 ? row.questionText.slice(0, 60) + '…' : row.questionText}</td>
+                        <td className="px-3 py-2 text-[var(--color-text-muted)] max-w-[140px] truncate" title={row.correctAnswer}>{row.correctAnswer}</td>
+                        <td className="px-3 py-2 text-[var(--color-text-muted)] max-w-[140px] truncate" title={row.yourAnswer}>{row.yourAnswer}</td>
+                        <td className="px-2 py-2">
+                          {row.isCorrect ? <span className="text-green-600 font-medium">✓</span> : <span className="text-red-500">✗</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={handleFinish}
+              className="px-8 py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold hover:opacity-90"
+            >
+              See my score
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const apiOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
   let audioSrc = currentItem?.audio_source || currentItem?.audio_url || '';
   if (audioSrc && !audioSrc.startsWith('http')) audioSrc = `${apiOrigin}${audioSrc}`;
@@ -232,7 +405,7 @@ export function ListeningPage() {
   const itemType = currentItem?.item_type === 'lecture' ? 'Lecture' : 'Conversation';
   const imageLabel = currentItem?.topic_tag || (currentItem?.item_type === 'conversation' ? 'New People Conversation' : itemType);
 
-  // ---------- Phase: Player (lecture only, no transcript on page) ----------
+  // ---------- Phase: Player (listen to audio for this stage) ----------
   if (phase === 'player' && currentItem) {
     return (
       <div className="min-h-screen bg-[var(--color-surface)] flex flex-col">
@@ -242,10 +415,11 @@ export function ListeningPage() {
             <svg className="w-5 h-5 text-[var(--color-text)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
             <div>
               <p className="text-sm font-bold text-[var(--color-text)] leading-tight">{testTitle}</p>
-              <p className="text-xs text-[var(--color-text-muted)] leading-tight">listening • Number 1</p>
+              <p className="text-xs text-[var(--color-text-muted)] leading-tight">Stage {currentItemIndex + 1} of {allItems.length} • {itemType}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-sm font-mono text-[var(--color-text-muted)] tabular-nums" title="Elapsed time">{formatElapsed(elapsedSeconds)}</span>
             {mode !== 'exam' && (
               <button type="button" onClick={() => setModal('review')} className="px-3 py-1.5 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] rounded-lg">Review</button>
             )}
@@ -327,10 +501,17 @@ export function ListeningPage() {
       <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-[var(--color-text)]">+ Test Prep Pro</span>
+          <span className="text-sm text-[var(--color-text-muted)]">Stage {currentItemIndex + 1} of {allItems.length} • Question {questionIndex + 1} of {questionsList.length}</span>
+          <span className="text-sm font-mono text-[var(--color-text-muted)] tabular-nums" title="Elapsed time">{formatElapsed(elapsedSeconds)}</span>
         </div>
         <div className="flex items-center gap-1">
           <Link to="/" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">Quit</Link>
           <button type="button" onClick={() => setPhase('player')} className="px-3 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] rounded-lg">Back</button>
+          {mode !== 'exam' && (
+            <IconButton onClick={() => setModal('help')} label="Help">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </IconButton>
+          )}
           {mode !== 'exam' && (
             <IconButton onClick={() => setModal('review')} label="Review">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -341,43 +522,76 @@ export function ListeningPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
             </IconButton>
           )}
-          <IconButton label="Notes"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></IconButton>
-          <IconButton label="Question list"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg></IconButton>
+          {mode !== 'exam' && (
+            <button
+              type="button"
+              onClick={() => setModal('answer')}
+              className="px-3 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]"
+            >
+              Answer
+            </button>
+          )}
+          {mode !== 'exam' && (
+            <IconButton onClick={() => setModal('analysis')} label="Analysis">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            </IconButton>
+          )}
           {mode !== 'exam' && (
             <IconButton onClick={() => setModal('settings')} label="Settings">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </IconButton>
           )}
           <IconButton label="Audio"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></IconButton>
-          <div className="w-8 h-8 rounded-full bg-[var(--color-border)] flex items-center justify-center ml-1">
-            <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-          </div>
         </div>
       </header>
 
       <main className="flex-1 p-4 md:p-6 max-w-3xl mx-auto w-full">
-        {currentQuestion && (
+        {currentQ && (
           <div onFocus={() => { answerStartRef.current = performance.now(); }}>
             <QuestionCard
-              question={currentQuestion}
+              question={currentQ}
               onSubmit={handleSubmitAnswer}
               disabled={false}
               feedback={feedback}
               mode={mode}
               questionIndex={questionIndex}
               totalQuestions={questionsList.length}
+              answeredCount={answersForReview.length}
+              onSelectQuestion={setQuestionIndex}
             />
           </div>
         )}
 
-        {mode === 'practice' && feedback && !isLastQuestion && (
+        {mode === 'practice' && feedback && !isLastQuestionOfStage && (
           <div className="flex justify-end mt-4">
             <button type="button" onClick={goToNext} className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">Continue →</button>
           </div>
         )}
+        {feedback && isLastQuestionOfStage && !isLastStage && (
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentItemIndex((i) => i + 1);
+                setPhase('player');
+                setQuestionIndex(0);
+                setFeedback(null);
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"
+            >
+              {mode === 'practice' ? 'Continue to next lecture →' : 'Next section →'}
+            </button>
+          </div>
+        )}
         {isLastQuestion && (feedback || mode === 'exam') && (
           <div className="flex justify-end mt-4">
-            <button type="button" onClick={handleFinish} className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90">Finish</button>
+            <button
+              type="button"
+              onClick={() => setPhase('review')}
+              className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"
+            >
+              Review answers
+            </button>
           </div>
         )}
 
@@ -401,6 +615,25 @@ export function ListeningPage() {
           onClose={() => setModal(null)}
           onSave={(s) => setSettingsSnapshot(s)}
         />
+      )}
+      {mode !== 'exam' && (
+        <Modal open={modal === 'help'} onClose={() => setModal(null)} title="Help">
+          <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">
+            Listen to the audio, then answer each question. Use <strong>Review</strong> to see your answers so far.
+            Use <strong>Analysis</strong> after submitting an answer to see why the correct option is right.
+            Use <strong>Transcript</strong> to read the audio text. When you finish all questions, click Finish to see your score.
+          </p>
+        </Modal>
+      )}
+      {mode !== 'exam' && (
+        <Modal open={modal === 'analysis'} onClose={() => setModal(null)} title="Analysis">
+          <AnalysisModalContent feedback={lastAnalysisFeedback ?? feedback} currentQuestion={lastAnalysisQuestion ?? currentQ} />
+        </Modal>
+      )}
+      {mode !== 'exam' && (
+        <Modal open={modal === 'answer'} onClose={() => setModal(null)} title="Answer">
+          <AnswerModalContent question={currentQ} />
+        </Modal>
       )}
     </div>
   );

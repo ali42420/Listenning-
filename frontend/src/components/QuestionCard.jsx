@@ -8,6 +8,8 @@ export function QuestionCard({
   mode,
   questionIndex,
   totalQuestions,
+  answeredCount = 0,
+  onSelectQuestion,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -91,22 +93,28 @@ export function QuestionCard({
         </button>
       )}
 
-      {/* Pagination dots */}
+      {/* Navigatable question numbers: answered = filled blue, unanswered = hollow */}
       {totalQuestions > 0 && (
-        <div className="flex items-center gap-2 mt-6 pt-4 border-t border-[var(--color-border)]">
-          {Array.from({ length: Math.min(5, totalQuestions) }, (_, i) => (
-            <span
-              key={i}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                i === questionIndex
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)]'
-              }`}
-            >
-              {i + 1}
-            </span>
-          ))}
-          {totalQuestions > 5 && <span className="text-[var(--color-text-muted)] text-sm">…</span>}
+        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-[var(--color-border)]">
+          {Array.from({ length: totalQuestions }, (_, i) => {
+            const isAnswered = i < answeredCount;
+            const isCurrent = i === questionIndex;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectQuestion?.(i)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition ${
+                  isAnswered
+                    ? 'bg-[var(--color-primary)] text-white border-2 border-[var(--color-primary)]'
+                    : 'bg-transparent text-[var(--color-text-muted)] border-2 border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-text)]'
+                } ${isCurrent ? 'ring-2 ring-[var(--color-primary)] ring-offset-2' : ''}`}
+                aria-label={`Question ${i + 1}`}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

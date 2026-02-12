@@ -3,7 +3,7 @@ import { ModeSelect } from './pages/ModeSelect';
 import { AudioSetupPage } from './pages/AudioSetupPage';
 import { DirectionsPage } from './pages/DirectionsPage';
 import { TestSelect } from './pages/TestSelect';
-import { ListeningPage } from './pages/ListeningPage';
+import ListeningPage from './pages/ListeningPage';
 
 function AppRoutes() {
   return (

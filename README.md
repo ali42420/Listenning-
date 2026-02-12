@@ -41,8 +41,16 @@ npm run dev
 docker compose up --build
 ```
 
-- Backend: http://localhost:8000  
-- Frontend: http://localhost:3000  
+| Service   | URL                      | Port (host → container) |
+|-----------|--------------------------|--------------------------|
+| **Backend** (Django API) | http://localhost:8000    | `8000:8000`              |
+| **Frontend** (app in browser) | http://localhost:3000 | `3000:80`                |
+
+- **API base:** http://localhost:8000/api  
+- **Admin:** http://localhost:8000/admin  
+- **App (use this to take tests):** http://localhost:3000  
+
+The frontend build uses `VITE_API_URL=http://localhost:8000/api` so the app talks to the backend on port 8000.
 
 Create a superuser inside the backend container to use admin and login:
 

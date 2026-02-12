@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export function AudioSetupPage() {
   const [searchParams] = useSearchParams();
@@ -17,13 +18,16 @@ export function AudioSetupPage() {
           <span className="font-bold text-[var(--color-text)]">REAL 1</span>
           <span className="text-[var(--color-text-muted)]">LISTENING / Audio Setup</span>
         </div>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"
-        >
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"
+          >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Quit
         </Link>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-10">

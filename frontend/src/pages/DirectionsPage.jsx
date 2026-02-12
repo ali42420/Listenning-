@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export function DirectionsPage() {
   const [searchParams] = useSearchParams();
@@ -37,6 +38,7 @@ export function DirectionsPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-[var(--color-text-muted)]">Volume</span>
+          <ThemeToggle />
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-text)] font-semibold border border-[var(--color-primary)]/20 hover:opacity-90"

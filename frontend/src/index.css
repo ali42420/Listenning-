@@ -1,18 +1,38 @@
 @import "tailwindcss";
 
-/* Figma-style palette: Test Prep Pro / Listening */
+/* Color palette: Dark Blue #0B0754, Medium Blue #3A5BA0, Light Blue #B0CAFF, Coral #DE8F8E, Yellow #FFD85C */
+/* Light mode (default) – keeps Figma structure, modern professional look */
 @theme {
-  --color-primary: #1e40af;
-  --color-accent: #facc15;
-  --color-accent-hover: #eab308;
-  --color-surface: #f5f5f5;
-  --color-card: #ffffff;
-  --color-border: #e5e7eb;
-  --color-text: #374151;
-  --color-text-muted: #6b7280;
-  --color-selected: #dbeafe;
-  --color-practice: #fdba74;
-  --color-practice-border: #f97316;
+  --color-primary: #3A5BA0;
+  --color-primary-soft: #3A5BA0;
+  --color-accent: #FFD85C;
+  --color-accent-hover: #EBC84A;
+  --color-coral: #DE8F8E;
+  --color-surface: #F0F4FF;
+  --color-card: #FFFFFF;
+  --color-border: #B0CAFF;
+  --color-text: #0B0754;
+  --color-text-muted: #3A5BA0;
+  --color-selected: #B0CAFF;
+  --color-practice: #DE8F8E;
+  --color-practice-border: #C97A79;
+}
+
+/* Dark mode – same palette, inverted roles */
+.dark {
+  --color-primary: #5B7BC4;
+  --color-primary-soft: #3A5BA0;
+  --color-accent: #FFD85C;
+  --color-accent-hover: #EBC84A;
+  --color-coral: #E8A09F;
+  --color-surface: #0B0754;
+  --color-card: #12106A;
+  --color-border: #2A2880;
+  --color-text: #B0CAFF;
+  --color-text-muted: #7A9AD4;
+  --color-selected: #2A2880;
+  --color-practice: #DE8F8E;
+  --color-practice-border: #E8A09F;
 }
 
 body {
@@ -21,6 +41,7 @@ body {
   font-family: Inter, system-ui, sans-serif;
   background-color: var(--color-surface);
   color: var(--color-text);
+  transition: background-color 0.25s ease, color 0.2s ease;
 }
 
 @keyframes modalOverlayIn {

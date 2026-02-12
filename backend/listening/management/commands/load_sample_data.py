@@ -1,7 +1,7 @@
 """
 Create sample listening tests, items, questions and options.
 Run: python manage.py load_sample_data
-Creates 10 lectures, each with 5 questions.
+Creates 1 test with 5 items (stages), each with 5 questions (25 questions total).
 """
 from django.core.management.base import BaseCommand
 from listening.models import ListeningTest, ListeningItem, Question, ChoiceOption
@@ -18,6 +18,57 @@ def add_options(question, correct_label, options_texts):
             order=i + 1,
         )
 
+
+# Conversations (two people): each with 5 questions. Used for stages 1 and 3.
+CONVERSATIONS = [
+    {
+        'topic': 'Student & Professor - Office Hours',
+        'transcript': """Narrator: Listen to a conversation between a student and a professor.
+Student: Hi, Professor Martinez. Do you have a minute? I'm confused about the assignment for next week.
+Professor: Of course. Which part is unclear?
+Student: The essay—you said we need two primary sources, but the library database only shows one that's relevant to my topic.
+Professor: Try the archive section on the second floor. They have older documents that aren't fully digitized. Also, you can use one primary and one secondary source if you cite the secondary properly.
+Student: So one primary and one secondary would be okay?
+Professor: Yes. Just make sure the secondary source is academic—a journal article or a book from a university press, not a website.
+Student: Thanks, that helps a lot.""",
+        'questions': [
+            ('Why does the student go to see the professor?', 'main_idea', 'B',
+             ['To get a book.', 'To clarify the assignment requirements.', 'To hand in an essay.', 'To discuss the library.']),
+            ('What does the professor suggest about the library?', 'detail', 'C',
+             ['Avoid the second floor.', 'Use only the database.', 'Check the archive section on the second floor.', 'Everything is digitized.']),
+            ('According to the professor, what is acceptable for the assignment?', 'detail', 'A',
+             ['One primary and one academic secondary source.', 'Only primary sources.', 'Any website.', 'Only books.']),
+            ('What can be inferred about the student\'s topic?', 'inference', 'D',
+             ['It is too narrow.', 'The professor dislikes it.', 'There are too many sources.', 'Relevant primary sources may be limited.']),
+            ('Why does the professor mention a university press?', 'pragmatic', 'B',
+             ['To recommend a publisher.', 'To give an example of an acceptable secondary source.', 'To discuss careers.', 'To explain archives.']),
+        ],
+    },
+    {
+        'topic': 'Two Students - Campus Cafeteria',
+        'transcript': """Narrator: Listen to a conversation between two students at the campus cafeteria.
+Lisa: I can't believe we have three exams in one week. How are you managing?
+Jake: I'm not. I've been pulling all-nighters. I wish I'd spread my study schedule out.
+Lisa: Same. I heard the study group for Biology meets on Tuesdays. Maybe we could join and split the material.
+Jake: Good idea. But isn't the library closed late on Tuesdays?
+Lisa: Yeah, but the student center stays open until midnight. We could book a room there. I'll check if there's space.
+Jake: Perfect. And we still have to finish that lab report for Thursday.
+Lisa: Right. I'll do the graphs if you write the analysis. We can swap drafts tomorrow.
+Jake: Deal. Let's meet at the student center at seven.""",
+        'questions': [
+            ('What is the conversation mainly about?', 'main_idea', 'C',
+             ['Cafeteria food.', 'Library hours.', 'Managing exams and coordinating study plans.', 'Lab reports only.']),
+            ('What does Lisa suggest they do?', 'detail', 'A',
+             ['Join a Biology study group and use the student center.', 'Study alone.', 'Skip the lab report.', 'Only meet on Thursdays.']),
+            ('Why does Jake mention the library?', 'detail', 'B',
+             ['To praise it.', 'To point out it might be closed when they want to study.', 'To suggest moving there.', 'To discuss booking.']),
+            ('What can be inferred about the lab report?', 'inference', 'D',
+             ['Only one person will do it.', 'It is not due soon.', 'They will not work together.', 'They plan to divide the work and exchange drafts.']),
+            ('What do the students agree to do at the end?', 'pragmatic', 'A',
+             ['Meet at the student center at seven.', 'Skip the study group.', 'Meet on Thursday only.', 'Close the library.']),
+        ],
+    },
+]
 
 # 10 lectures, each with 5 questions (text, type, correct_label, [A, B, C, D])
 LECTURES = [
@@ -196,7 +247,7 @@ Professor: Newton's first law says that an object at rest stays at rest and an o
 
 
 class Command(BaseCommand):
-    help = 'Load sample TOEFL Listening tests: 10 lectures, each with 5 questions'
+    help = 'Load sample TOEFL Listening test: 5 stages (2 conversations, 3 lectures), 5 questions each (25 total)'
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Delete existing tests before loading')
@@ -217,16 +268,24 @@ class Command(BaseCommand):
             is_active=True,
         )
 
-        for order, lecture in enumerate(LECTURES, start=1):
+        # 5 stages: Conversation, Lecture, Conversation, Lecture, Lecture (25 questions total, 5 per stage)
+        stage_specs = [
+            (CONVERSATIONS[0], 'conversation'),
+            (LECTURES[0], 'lecture'),
+            (CONVERSATIONS[1], 'conversation'),
+            (LECTURES[1], 'lecture'),
+            (LECTURES[2], 'lecture'),
+        ]
+        for order, (content, item_type) in enumerate(stage_specs, start=1):
             item = ListeningItem.objects.create(
                 test=test,
                 difficulty='medium',
-                topic_tag=lecture['topic'],
-                transcript=lecture['transcript'],
-                item_type='lecture',
+                topic_tag=content['topic'],
+                transcript=content['transcript'],
+                item_type=item_type,
                 order=order,
             )
-            for q_order, (q_text, q_type, correct, options) in enumerate(lecture['questions'], start=1):
+            for q_order, (q_text, q_type, correct, options) in enumerate(content['questions'], start=1):
                 q = Question.objects.create(
                     item=item,
                     text=q_text,
@@ -241,6 +300,6 @@ class Command(BaseCommand):
         test.save(update_fields=['total_items'])
 
         self.stdout.write(self.style.SUCCESS(
-            f'Created 1 test, {ListeningItem.objects.count()} lectures, '
+            f'Created 1 test with 5 stages (2 conversations, 3 lectures), '
             f'{Question.objects.count()} questions, {ChoiceOption.objects.count()} options.'
         ))
