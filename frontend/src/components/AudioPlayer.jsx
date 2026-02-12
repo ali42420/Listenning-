@@ -2,12 +2,47 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 
 const SPEEDS = [1, 1.25, 1.5];
 
+// Illustration: two people in conversation
+function ConversationIllustration({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      {/* Left person */}
+      <circle cx="38" cy="26" r="12" fill="currentColor" opacity="0.85" />
+      <ellipse cx="38" cy="52" rx="14" ry="18" fill="currentColor" opacity="0.85" />
+      {/* Right person */}
+      <circle cx="82" cy="26" r="12" fill="currentColor" opacity="0.85" />
+      <ellipse cx="82" cy="52" rx="14" ry="18" fill="currentColor" opacity="0.85" />
+      {/* Speech/dialogue hint between them */}
+      <path d="M52 32c0-2 2-3 4-3s4 1 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" fill="none" />
+      <path d="M64 32c0-2 2-3 4-3s4 1 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" fill="none" />
+    </svg>
+  );
+}
+
+// Illustration: single person (lecturer at podium)
+function LectureIllustration({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      {/* Podium / board */}
+      <rect x="18" y="36" width="36" height="28" rx="3" fill="currentColor" opacity="0.12" />
+      <line x1="22" y1="44" x2="50" y2="44" stroke="currentColor" strokeWidth="1.5" opacity="0.25" />
+      <line x1="22" y1="52" x2="48" y2="52" stroke="currentColor" strokeWidth="1.5" opacity="0.25" />
+      <line x1="22" y1="58" x2="44" y2="58" stroke="currentColor" strokeWidth="1.5" opacity="0.25" />
+      {/* Lecturer */}
+      <circle cx="78" cy="28" r="14" fill="currentColor" opacity="0.9" />
+      <path d="M66 46v6c0 4 6 8 12 8s12-4 12-8v-6" fill="currentColor" opacity="0.9" />
+      <rect x="72" y="68" width="12" height="4" rx="1" fill="currentColor" opacity="0.35" />
+    </svg>
+  );
+}
+
 export default function AudioPlayer({
   src,
   sessionId,
   logEvent,
   imageUrl,
   imageLabel = 'Conversation',
+  itemType = 'conversation',
   onEnded,
   showContinueButton,
   mode = 'practice',
@@ -196,9 +231,11 @@ export default function AudioPlayer({
             <img src={imageUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-primary)]/10 to-[var(--color-primary)]/5">
-              <svg className="w-24 h-24 text-[var(--color-primary)]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
+              {itemType === 'lecture' ? (
+                <LectureIllustration className="w-32 h-full max-h-28 text-[var(--color-primary)]/40 object-contain" />
+              ) : (
+                <ConversationIllustration className="w-32 h-full max-h-28 text-[var(--color-primary)]/40 object-contain" />
+              )}
             </div>
           )}
           <span className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-sm font-medium">

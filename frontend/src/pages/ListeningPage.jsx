@@ -219,6 +219,7 @@ export function ListeningPage() {
               sessionId={session?.id}
               logEvent={logEvent}
               imageLabel={imageLabel}
+              itemType={currentItem?.item_type || 'conversation'}
               onEnded={handleAudioEnded}
               mode={mode}
             />
