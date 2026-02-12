@@ -10,6 +10,7 @@ export default function AudioPlayer({
   imageLabel = 'Conversation',
   onEnded,
   showContinueButton,
+  mode = 'practice',
 }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -17,6 +18,10 @@ export default function AudioPlayer({
   const [duration, setDuration] = useState(0);
   const [speedIndex, setSpeedIndex] = useState(0);
   const [volume, setVolume] = useState(100); // 0-100
+  // Blob URL so seeking works without server Range support
+  const [blobSrc, setBlobSrc] = useState(null);
+  const [blobReady, setBlobReady] = useState(false);
+  const blobUrlRef = useRef(null);
 
   const updateTime = useCallback(() => {
     const el = audioRef.current;
@@ -39,6 +44,44 @@ export default function AudioPlayer({
     el.muted = volume === 0;
   }, [volume]);
 
+  // Fetch audio as blob so seeking works when server doesn't support Range requests
+  useEffect(() => {
+    if (!src) {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+      setBlobSrc(null);
+      setBlobReady(true);
+      return;
+    }
+    setBlobReady(false);
+    let cancelled = false;
+    fetch(src, { mode: 'cors' })
+      .then((res) => res.blob())
+      .then((blob) => {
+        if (cancelled) return;
+        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = URL.createObjectURL(blob);
+        setBlobSrc(blobUrlRef.current);
+        setBlobReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBlobSrc(null);
+          setBlobReady(true); // fallback to direct src
+        }
+      });
+    return () => {
+      cancelled = true;
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+      setBlobSrc(null);
+    };
+  }, [src]);
+
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -54,7 +97,7 @@ export default function AudioPlayer({
       el.removeEventListener('loadedmetadata', updateTime);
       el.removeEventListener('ended', handleEnded);
     };
-  }, [updateTime, src, onEnded]);
+  }, [updateTime, blobSrc, src, onEnded]);
 
   const togglePlay = () => {
     const el = audioRef.current;
@@ -133,10 +176,19 @@ export default function AudioPlayer({
   if (!src) return null;
 
   const displayLabel = imageLabel || 'Conversation';
+  const audioSrc = blobSrc || src;
+
+  if (!blobReady) {
+    return (
+      <div className="rounded-2xl bg-[var(--color-card)] shadow-lg border-2 border-[var(--color-selected)] overflow-hidden p-8 text-center">
+        <p className="text-[var(--color-text-muted)]">Loading audio...</p>
+      </div>
+    );
+  }
 
   return (
     <>
-      <audio ref={audioRef} src={src} preload="auto" />
+      <audio ref={audioRef} src={audioSrc} preload="auto" />
       <div className="rounded-2xl bg-[var(--color-card)] shadow-lg border-2 border-[var(--color-selected)] overflow-hidden">
         {/* Image area with overlay label */}
         <div className="relative aspect-video bg-[var(--color-surface)] overflow-hidden">
@@ -192,13 +244,15 @@ export default function AudioPlayer({
               aria-label="Volume"
             />
           </div>
-          <button
-            type="button"
-            onClick={cycleSpeed}
-            className="px-3 py-1.5 rounded-lg bg-[var(--color-surface)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-border)]"
-          >
-            {SPEEDS[speedIndex]}x
-          </button>
+          {mode !== 'exam' && (
+            <button
+              type="button"
+              onClick={cycleSpeed}
+              className="px-3 py-1.5 rounded-lg bg-[var(--color-surface)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-border)]"
+            >
+              {SPEEDS[speedIndex]}x
+            </button>
+          )}
           <button
             type="button"
             onClick={(e) => skip(e, -10)}
@@ -229,15 +283,17 @@ export default function AudioPlayer({
             <svg className="w-5 h-5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
             <span className="text-[10px] font-medium leading-none">10</span>
           </button>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-            title="Download"
-            aria-label="Download"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          </button>
+          {mode !== 'exam' && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              title="Download"
+              aria-label="Download"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            </button>
+          )}
         </div>
 
         {showContinueButton && (

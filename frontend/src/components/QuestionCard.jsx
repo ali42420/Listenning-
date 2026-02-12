@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function QuestionCard({
   question,
@@ -11,6 +11,12 @@ export function QuestionCard({
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Reset selection when the question changes (e.g. moving to next question)
+  useEffect(() => {
+    setSelectedId(null);
+    setSubmitted(false);
+  }, [question?.id]);
 
   const handleSelect = (optionId) => {
     if (submitted || disabled) return;

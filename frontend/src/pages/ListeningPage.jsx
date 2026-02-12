@@ -220,6 +220,7 @@ export function ListeningPage() {
               logEvent={logEvent}
               imageLabel={imageLabel}
               onEnded={handleAudioEnded}
+              mode={mode}
             />
           </div>
         </main>

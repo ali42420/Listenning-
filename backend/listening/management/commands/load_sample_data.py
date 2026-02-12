@@ -1,6 +1,7 @@
 """
 Create sample listening tests, items, questions and options.
 Run: python manage.py load_sample_data
+Creates 10 lectures, each with 5 questions.
 """
 from django.core.management.base import BaseCommand
 from listening.models import ListeningTest, ListeningItem, Question, ChoiceOption
@@ -18,8 +19,184 @@ def add_options(question, correct_label, options_texts):
         )
 
 
+# 10 lectures, each with 5 questions (text, type, correct_label, [A, B, C, D])
+LECTURES = [
+    {
+        'topic': 'Biology',
+        'transcript': """Narrator: Listen to part of a lecture in a biology class.
+Professor: Today we'll look at how certain plants adapt to dry environments. One key mechanism is crassulacean acid metabolism, or CAM. In CAM plants, the stomata open at night to take in carbon dioxide and close during the day to reduce water loss. The cactus is a classic example. Other CAM plants include pineapple and agave. By storing CO2 at night and using it for photosynthesis during the day, these plants can survive with very little water.""",
+        'questions': [
+            ('What is the main idea of the lecture?', 'main_idea', 'C',
+             ['Cacti are the only plants that survive in deserts.', 'Stomata always open during the day.',
+              'CAM allows plants to conserve water in dry environments.', 'Pineapple and agave are not related to cacti.']),
+            ('When do CAM plants open their stomata?', 'detail', 'B',
+             ['Only in the morning.', 'At night.', 'During the afternoon.', 'They never close.']),
+            ('According to the professor, which is an example of a CAM plant?', 'detail', 'A',
+             ['Cactus.', 'Oak tree.', 'Rose.', 'Fern.']),
+            ('What can be inferred about photosynthesis in CAM plants?', 'inference', 'D',
+             ['It does not require CO2.', 'It happens only at night.', 'It is slower than in other plants.', 'It uses CO2 stored at night.']),
+            ('Why does the professor mention pineapple and agave?', 'organization', 'B',
+             ['To contrast them with cacti.', 'To give more examples of CAM plants.', 'To discuss tropical agriculture.', 'To explain crop rotation.']),
+        ],
+    },
+    {
+        'topic': 'History',
+        'transcript': """Narrator: Listen to part of a lecture in a history class.
+Professor: The Silk Road was not a single road but a network of trade routes connecting East and West. Silk was one of the main commodities, but spices, glass, and ideas also traveled along these routes. Buddhism spread from India to China largely through Silk Road contact. The routes declined when sea trade became safer and faster. Marco Polo's travels in the 13th century were along these same networks.""",
+        'questions': [
+            ('What is the main point of the lecture?', 'main_idea', 'B',
+             ['Silk was the only product traded.', 'The Silk Road was a network that moved goods and ideas.', 'Marco Polo built the Silk Road.', 'Sea trade caused the Silk Road to open.']),
+            ('According to the professor, what besides goods traveled the Silk Road?', 'detail', 'C',
+             ['Soldiers.', 'Disease only.', 'Ideas and religion.', 'Gold and silver only.']),
+            ('Why did the Silk Road decline?', 'detail', 'A',
+             ['Sea trade became safer and faster.', 'War destroyed the routes.', 'Silk became worthless.', 'Marco Polo died.']),
+            ('What can be inferred about Buddhism and the Silk Road?', 'inference', 'D',
+             ['Buddhism ended trade.', 'Buddhism was only in India.', 'The Silk Road was built for Buddhism.', 'Contact along the routes helped spread Buddhism.']),
+            ('Why does the professor mention Marco Polo?', 'organization', 'B',
+             ['To criticize his accounts.', 'To connect the routes to a well-known traveler.', 'To discuss the 13th century.', 'To compare land and sea travel.']),
+        ],
+    },
+    {
+        'topic': 'Psychology',
+        'transcript': """Narrator: Listen to part of a lecture in a psychology class.
+Professor: Classical conditioning was first demonstrated by Ivan Pavlov. He noticed that dogs salivated not only when they saw food but also when they heard the footsteps of the person who fed them. He then paired a neutral stimulus—a bell—with the presentation of food. After repeated pairings, the dogs salivated at the sound of the bell alone. The bell had become a conditioned stimulus. This principle has been used in advertising, education, and therapy.""",
+        'questions': [
+            ('What is the lecture mainly about?', 'main_idea', 'A',
+             ['How a neutral stimulus can become associated with a response.', 'Why dogs are used in experiments.', 'The history of advertising.', 'Food and digestion.']),
+            ('What did Pavlov use as a neutral stimulus?', 'detail', 'B',
+             ['Food.', 'A bell.', 'Footsteps.', 'A light.']),
+            ('According to the professor, where has classical conditioning been applied?', 'detail', 'D',
+             ['Only in labs.', 'Only with animals.', 'Only in Russia.', 'In advertising, education, and therapy.']),
+            ('What can be inferred about the dogs before the experiment?', 'inference', 'C',
+             ['They did not like bells.', 'They were hungry all the time.', 'The bell initially did not cause salivation.', 'They were trained to eat on command.']),
+            ('Why does the professor mention footsteps?', 'pragmatic', 'A',
+             ['To show the dogs had already begun to associate a sound with food.', 'To explain why Pavlov used a bell.', 'To discuss the lab setting.', 'To compare different stimuli.']),
+        ],
+    },
+    {
+        'topic': 'Astronomy',
+        'transcript': """Narrator: Listen to part of a lecture in an astronomy class.
+Professor: Black holes are regions of spacetime where gravity is so strong that nothing, not even light, can escape. They form when massive stars collapse at the end of their life cycle. The boundary beyond which nothing can escape is called the event horizon. Although we cannot see black holes directly, we detect them by observing their effects on nearby matter and light. Supermassive black holes are thought to exist at the centers of most galaxies.""",
+        'questions': [
+            ('What is the main idea of the lecture?', 'main_idea', 'B',
+             ['Light can escape black holes.', 'Black holes are regions where gravity prevents escape.', 'All stars become black holes.', 'Galaxies have no center.']),
+            ('What is the event horizon?', 'detail', 'C',
+             ['The center of a black hole.', 'A type of star.', 'The boundary beyond which nothing can escape.', 'A galaxy.']),
+            ('How do scientists detect black holes?', 'detail', 'A',
+             ['By observing their effects on nearby matter and light.', 'By sending probes into them.', 'By seeing them directly.', 'By measuring gravity on Earth.']),
+            ('What can be inferred about massive stars?', 'inference', 'D',
+             ['They never die.', 'They always become visible.', 'They do not have gravity.', 'They can collapse and form black holes.']),
+            ('Why does the professor mention galaxies?', 'organization', 'B',
+             ['To contrast them with black holes.', 'To note that supermassive black holes may be at their centers.', 'To discuss the Milky Way only.', 'To explain the event horizon.']),
+        ],
+    },
+    {
+        'topic': 'Environmental Science',
+        'transcript': """Narrator: Listen to part of a lecture in an environmental science class.
+Professor: Coral reefs are often called the rainforests of the sea. They support a huge diversity of life and protect coastlines from erosion. Coral bleaching occurs when water temperatures rise and the coral expels the symbiotic algae living in its tissues, causing it to turn white. Without the algae, the coral may die. Ocean acidification, caused by increased CO2 absorption, weakens coral skeletons. Both warming and acidification threaten reef survival worldwide.""",
+        'questions': [
+            ('What is the lecture mainly about?', 'main_idea', 'C',
+             ['Rainforests and coral.', 'Coastline erosion only.', 'Coral reefs and threats to their survival.', 'Algae and fish.']),
+            ('What causes coral bleaching?', 'detail', 'B',
+             ['Pollution only.', 'Rising water temperatures.', 'Too many fish.', 'Ocean currents.']),
+            ('What is ocean acidification linked to?', 'detail', 'A',
+             ['Increased CO2 absorption by the ocean.', 'Coral reproduction.', 'Algae growth.', 'Coastal development.']),
+            ('What can be inferred when coral expels its algae?', 'inference', 'D',
+             ['The coral is healthy.', 'The water is too cold.', 'The coral is growing.', 'The coral is under stress and may die.']),
+            ('Why does the professor compare reefs to rainforests?', 'organization', 'B',
+             ['They are on land.', 'Both support high biodiversity.', 'They have the same climate.', 'They are the same age.']),
+        ],
+    },
+    {
+        'topic': 'Economics',
+        'transcript': """Narrator: Listen to part of a lecture in an economics class.
+Professor: Supply and demand determine market price. When demand exceeds supply, prices tend to rise. When supply exceeds demand, prices tend to fall. Elasticity measures how much quantity demanded or supplied changes when price changes. Inelastic goods, like basic food or medicine, see relatively small changes in quantity when price changes. Governments sometimes set price ceilings or floors to protect consumers or producers.""",
+        'questions': [
+            ('What is the main point of the lecture?', 'main_idea', 'A',
+             ['Supply and demand affect price; elasticity and policy can too.', 'Prices never change.', 'Governments always set prices.', 'Elasticity is the same for all goods.']),
+            ('When do prices tend to rise?', 'detail', 'B',
+             ['When supply exceeds demand.', 'When demand exceeds supply.', 'When elasticity is low.', 'When there are no governments.']),
+            ('What are inelastic goods?', 'detail', 'C',
+             ['Goods that change a lot with price.', 'Goods with no demand.', 'Goods whose quantity changes little when price changes.', 'Goods that are illegal.']),
+            ('What can be inferred about price ceilings?', 'inference', 'D',
+             ['They always help producers.', 'They have no effect.', 'They raise prices.', 'They are used to try to help some groups.']),
+            ('Why does the professor mention medicine?', 'pragmatic', 'A',
+             ['As an example of an inelastic good.', 'To discuss healthcare policy.', 'To compare with food.', 'To explain supply.']),
+        ],
+    },
+    {
+        'topic': 'Literature',
+        'transcript': """Narrator: Listen to part of a lecture in a literature class.
+Professor: The unreliable narrator is a character who tells the story but whose account the reader cannot fully trust. They may be lying, mistaken, or biased. This technique creates tension and makes the reader work to interpret events. Famous examples include the narrator in Poe's "The Tell-Tale Heart" and the narrator in Gillian Flynn's "Gone Girl." It forces us to question what really happened and to think about perspective and truth in storytelling.""",
+        'questions': [
+            ('What is the lecture mainly about?', 'main_idea', 'C',
+             ['Poe and Flynn.', 'How to write stories.', 'The unreliable narrator as a literary technique.', 'Truth in real life.']),
+            ('According to the professor, why might a narrator be unreliable?', 'detail', 'B',
+             ['They are always the hero.', 'They may be lying, mistaken, or biased.', 'They never speak.', 'They are not characters.']),
+            ('What effect does an unreliable narrator have?', 'detail', 'A',
+             ['It can create tension and make the reader interpret.', 'It makes the story shorter.', 'It guarantees the truth.', 'It removes perspective.']),
+            ('What can be inferred about "The Tell-Tale Heart"?', 'inference', 'D',
+             ['It has no narrator.', 'The narrator is fully trusted.', 'It is not literature.', 'The narrator may not be trustworthy.']),
+            ('Why does the professor mention "Gone Girl"?', 'organization', 'B',
+             ['To criticize it.', 'As another example of an unreliable narrator.', 'To discuss film only.', 'To define perspective.']),
+        ],
+    },
+    {
+        'topic': 'Geology',
+        'transcript': """Narrator: Listen to part of a lecture in a geology class.
+Professor: Plate tectonics explains the movement of Earth's lithosphere. The lithosphere is broken into plates that float on the asthenosphere. Where plates meet, we get earthquakes, volcanoes, and mountain building. Divergent boundaries are where plates move apart, like at the Mid-Atlantic Ridge. Convergent boundaries are where plates collide; one may subduct under the other. Transform boundaries are where plates slide past each other, like the San Andreas Fault.""",
+        'questions': [
+            ('What is the main idea of the lecture?', 'main_idea', 'A',
+             ['Plate tectonics explains lithosphere movement and geologic activity.', 'Earthquakes only happen in one place.', 'The asthenosphere does not move.', 'Plates are all the same size.']),
+            ('What happens at divergent boundaries?', 'detail', 'C',
+             ['Plates collide.', 'Plates slide past each other.', 'Plates move apart.', 'Nothing.']),
+            ('Where is the San Andreas Fault an example of?', 'detail', 'D',
+             ['Divergent boundary.', 'Convergent boundary.', 'Subduction.', 'Transform boundary.']),
+            ('What can be inferred about the Mid-Atlantic Ridge?', 'inference', 'B',
+             ['It is where plates collide.', 'It is a place where plates are moving apart.', 'It is not related to plates.', 'It is on land only.']),
+            ('Why does the professor mention subduction?', 'organization', 'A',
+             ['To describe what can happen at convergent boundaries.', 'To define the lithosphere.', 'To explain the San Andreas Fault.', 'To discuss the Mid-Atlantic Ridge.']),
+        ],
+    },
+    {
+        'topic': 'Sociology',
+        'transcript': """Narrator: Listen to part of a lecture in a sociology class.
+Professor: Social norms are unwritten rules that guide behavior in a group. They vary by culture and context. Norms can be formal, like laws, or informal, like etiquette. When someone breaks a norm, they may face sanctions—from a frown to legal punishment. Norms help maintain order and predictability. Studying how norms form and change helps us understand society and why people conform or deviate.""",
+        'questions': [
+            ('What is the lecture mainly about?', 'main_idea', 'B',
+             ['Laws only.', 'Social norms and their role in society.', 'Punishment only.', 'Individual behavior only.']),
+            ('According to the professor, what are social norms?', 'detail', 'C',
+             ['Always written down.', 'The same in every culture.', 'Unwritten rules that guide behavior.', 'Only about law.']),
+            ('What can happen when someone breaks a norm?', 'detail', 'A',
+             ['They may face sanctions.', 'Nothing.', 'They are always arrested.', 'Norms change immediately.']),
+            ('What can be inferred about norms and order?', 'inference', 'D',
+             ['Norms cause chaos.', 'Norms are unimportant.', 'Only laws matter.', 'Norms help maintain order and predictability.']),
+            ('Why does the professor mention etiquette?', 'pragmatic', 'B',
+             ['To define law.', 'As an example of informal norms.', 'To discuss culture only.', 'To explain sanctions.']),
+        ],
+    },
+    {
+        'topic': 'Physics',
+        'transcript': """Narrator: Listen to part of a lecture in a physics class.
+Professor: Newton's first law says that an object at rest stays at rest and an object in motion stays in motion at constant velocity unless acted on by an external force. This is the law of inertia. Friction is a force that opposes motion, so in the real world objects slow down. In space, with little friction, objects can keep moving for a long time. The first law is essential for understanding how forces change motion, which we describe further in the second law.""",
+        'questions': [
+            ('What is the main point of the lecture?', 'main_idea', 'C',
+             ['Friction is the only force.', 'Space has no motion.', 'Newton\'s first law describes inertia; objects keep their state unless a force acts.', 'Velocity never changes.']),
+            ('What is inertia?', 'detail', 'A',
+             ['The tendency of an object to keep its state of rest or motion.', 'A type of force.', 'The same as friction.', 'Only in space.']),
+            ('Why do objects on Earth slow down?', 'detail', 'B',
+             ['Because of the first law.', 'Because of forces like friction.', 'Because they have no mass.', 'Because of space.']),
+            ('What can be inferred about motion in space?', 'inference', 'D',
+             ['It does not exist.', 'It always stops quickly.', 'Forces are stronger there.', 'With little friction, motion can continue.']),
+            ('Why does the professor mention the second law?', 'organization', 'B',
+             ['To replace the first law.', 'To connect the first law to how forces change motion.', 'To define friction.', 'To discuss space only.']),
+        ],
+    },
+]
+
+
 class Command(BaseCommand):
-    help = 'Load sample TOEFL Listening tests and questions'
+    help = 'Load sample TOEFL Listening tests: 10 lectures, each with 5 questions'
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Delete existing tests before loading')
@@ -33,283 +210,37 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('Tests already exist. Use --clear to replace.'))
             return
 
-        # ---- REAL 1 ----
-        t1 = ListeningTest.objects.create(
+        test = ListeningTest.objects.create(
             title='REAL 1',
             version_id='v1',
             total_items=0,
             is_active=True,
         )
-        conv1 = ListeningItem.objects.create(
-            test=t1,
-            difficulty='medium',
-            topic_tag='Campus',
-            transcript="""Narrator: Listen to a conversation between a student and a facilities manager.
 
-Student: Hi, I'm here about the desk in the library study room. The one near the window is broken—the drawer won't close.
+        for order, lecture in enumerate(LECTURES, start=1):
+            item = ListeningItem.objects.create(
+                test=test,
+                difficulty='medium',
+                topic_tag=lecture['topic'],
+                transcript=lecture['transcript'],
+                item_type='lecture',
+                order=order,
+            )
+            for q_order, (q_text, q_type, correct, options) in enumerate(lecture['questions'], start=1):
+                q = Question.objects.create(
+                    item=item,
+                    text=q_text,
+                    question_type=q_type,
+                    score_weight=1,
+                    order=q_order,
+                    explanation='',
+                )
+                add_options(q, correct, options)
 
-Employee: Oh, we've had a few reports about that. Let me take your name and the exact location. Which study room number?
-
-Student: It's room 3, on the second floor. The desk right by the window.
-
-Employee: Got it. I'll put in a work order. It should be fixed by the end of the week. Is there anything else?
-
-Student: No, that's all. Thanks.""",
-            item_type='conversation',
-            order=1,
-        )
-        q1 = Question.objects.create(
-            item=conv1,
-            text='Why does the student go to the facilities management office?',
-            question_type='main_idea',
-            score_weight=1,
-            order=1,
-            explanation='The student explicitly states she is there about a broken desk in the library and describes the problem.',
-        )
-        add_options(q1, 'A', [
-            'To report a broken desk in the library.',
-            'To inquire about the availability of study rooms.',
-            'To request a repair for a faulty air conditioner in the dorm.',
-            'To complain about the noise level in the common area.',
-        ])
-
-        q2 = Question.objects.create(
-            item=conv1,
-            text='Which study room is the student referring to?',
-            question_type='detail',
-            score_weight=1,
-            order=2,
-            explanation='The student says "It\'s room 3, on the second floor."',
-        )
-        add_options(q2, 'B', [
-            'Room 1 on the first floor.',
-            'Room 3 on the second floor.',
-            'Room 5 on the third floor.',
-            'The room near the main entrance.',
-        ])
-
-        lec1 = ListeningItem.objects.create(
-            test=t1,
-            difficulty='medium',
-            topic_tag='Biology',
-            transcript="""Narrator: Listen to part of a lecture in a biology class.
-
-Professor: Today we'll look at how certain plants adapt to dry environments. One key mechanism is crassulacean acid metabolism, or CAM. In CAM plants, the stomata open at night to take in carbon dioxide and close during the day to reduce water loss. This is the opposite of what most plants do. The cactus is a classic example. By storing CO2 at night and using it for photosynthesis during the day, the cactus can survive with very little water. Other CAM plants include pineapple and agave.""",
-            item_type='lecture',
-            order=2,
-        )
-        q3 = Question.objects.create(
-            item=lec1,
-            text='What is the main idea of the lecture?',
-            question_type='main_idea',
-            score_weight=1,
-            order=1,
-            explanation='The professor introduces CAM as a key mechanism for plants in dry environments and explains how it works.',
-        )
-        add_options(q3, 'C', [
-            'Cacti are the only plants that survive in deserts.',
-            'Stomata always open during the day.',
-            'CAM allows plants to conserve water in dry environments.',
-            'Pineapple and agave are not related to cacti.',
-        ])
-
-        # ---- REAL 2 ----
-        t2 = ListeningTest.objects.create(
-            title='REAL 2',
-            version_id='v1',
-            total_items=0,
-            is_active=True,
-        )
-        conv2 = ListeningItem.objects.create(
-            test=t2,
-            difficulty='easy',
-            topic_tag='Registration',
-            transcript="""Narrator: Listen to a conversation between a student and an advisor.
-
-Student: I need to add a course but the deadline passed. Is there any way to still register?
-
-Advisor: It depends. What course is it?
-
-Student: Introduction to Psychology. It's full but I really need it this semester.
-
-Advisor: You can submit a late add form with your professor's signature. If they approve and there's space, we can add you. Have you spoken to the professor?
-
-Student: Not yet. I'll go to their office hours tomorrow.
-
-Advisor: Good. Bring the form and your student ID when you come back.""",
-            item_type='conversation',
-            order=1,
-        )
-        q4 = Question.objects.create(
-            item=conv2,
-            text='What does the student want to do?',
-            question_type='main_idea',
-            score_weight=1,
-            order=1,
-            explanation='The student says they need to add a course and asks if they can still register after the deadline.',
-        )
-        add_options(q4, 'A', [
-            'Register for a course after the deadline.',
-            'Drop a course.',
-            'Change his major.',
-            'Get a signature for a scholarship.',
-        ])
-
-        q5 = Question.objects.create(
-            item=conv2,
-            text="What must the student do next?",
-            question_type='detail',
-            score_weight=1,
-            order=2,
-            explanation='The advisor says the student should get the professor\'s signature and can go to office hours. The student says they will go tomorrow.',
-        )
-        add_options(q5, 'B', [
-            'Pay a late fee at the bursar.',
-            'Get the professor\'s approval and bring the form back.',
-            'Wait until next semester.',
-            'Choose a different course.',
-        ])
-
-        # ---- REAL 3 ----
-        t3 = ListeningTest.objects.create(
-            title='REAL 3',
-            version_id='v1',
-            total_items=0,
-            is_active=True,
-        )
-        lec2 = ListeningItem.objects.create(
-            test=t3,
-            difficulty='hard',
-            topic_tag='History',
-            transcript="""Narrator: Listen to part of a lecture in a history class.
-
-Professor: The Silk Road was not a single road but a network of trade routes connecting East and West. Silk was one of the main commodities, but spices, glass, and ideas also traveled along these routes. Buddhism spread from India to China largely through Silk Road contact. The routes declined when sea trade became safer and faster, but their impact on culture and technology was lasting. Marco Polo's travels in the 13th century were along these same networks.""",
-            item_type='lecture',
-            order=1,
-        )
-        q6 = Question.objects.create(
-            item=lec2,
-            text='According to the professor, what is true about the Silk Road?',
-            question_type='detail',
-            score_weight=1,
-            order=1,
-            explanation='The professor states that the Silk Road was a network of routes, not a single road, and that silk, spices, glass, and ideas were traded.',
-        )
-        add_options(q6, 'B', [
-            'It was a single road from China to Rome.',
-            'It was a network of routes trading goods and ideas.',
-            'It was used only for silk.',
-            'It was replaced by land routes.',
-        ])
-
-        q7 = Question.objects.create(
-            item=lec2,
-            text='Why did the Silk Road decline?',
-            question_type='inference',
-            score_weight=1,
-            order=2,
-            explanation='The professor says the routes declined when sea trade became safer and faster.',
-        )
-        add_options(q7, 'C', [
-            'Because of wars in Central Asia.',
-            'Because silk became less valuable.',
-            'Because sea trade became safer and faster.',
-            'Because Marco Polo stopped traveling.',
-        ])
-
-        # ---- TOEFL Practice 1 ----
-        t4 = ListeningTest.objects.create(
-            title='TOEFL Practice 1',
-            version_id='v1',
-            total_items=0,
-            is_active=True,
-        )
-        conv3 = ListeningItem.objects.create(
-            test=t4,
-            difficulty='medium',
-            topic_tag='Library',
-            transcript="""Narrator: Listen to a conversation between a student and a librarian.
-
-Student: I'm looking for articles on climate change and agriculture. Do you have anything from the last two years?
-
-Librarian: Yes. You can use our database—just go to the library website and click "Databases." Search for "Environmental Science." You'll find several journals there. You can filter by date.
-
-Student: Can I access it from off campus?
-
-Librarian: Yes, but you need to log in with your university ID. Otherwise you won't get full access.
-
-Student: Great, thanks.""",
-            item_type='conversation',
-            order=1,
-        )
-        q8 = Question.objects.create(
-            item=conv3,
-            text='What does the student need to do to access the database from off campus?',
-            question_type='detail',
-            score_weight=1,
-            order=1,
-            explanation='The librarian says the student needs to log in with their university ID for off-campus access.',
-        )
-        add_options(q8, 'B', [
-            'Come to the library in person.',
-            'Log in with their university ID.',
-            'Pay a subscription fee.',
-            'Use a specific browser.',
-        ])
-
-        # ---- TOEFL Practice 2 ----
-        t5 = ListeningTest.objects.create(
-            title='TOEFL Practice 2',
-            version_id='v1',
-            total_items=0,
-            is_active=True,
-        )
-        lec3 = ListeningItem.objects.create(
-            test=t5,
-            difficulty='medium',
-            topic_tag='Psychology',
-            transcript="""Narrator: Listen to part of a lecture in a psychology class.
-
-Professor: Classical conditioning was first demonstrated by Ivan Pavlov. He noticed that dogs salivated not only when they saw food but also when they heard the footsteps of the person who fed them. He then paired a neutral stimulus—a bell—with the presentation of food. After repeated pairings, the dogs salivated at the sound of the bell alone. The bell had become a conditioned stimulus. This principle has been used in advertising, education, and therapy.""",
-            item_type='lecture',
-            order=1,
-        )
-        q9 = Question.objects.create(
-            item=lec3,
-            text='What did Pavlov discover in his experiment?',
-            question_type='detail',
-            score_weight=1,
-            order=1,
-            explanation='Pavlov found that after pairing a bell with food, the dogs salivated at the sound of the bell alone.',
-        )
-        add_options(q9, 'A', [
-            'Dogs could learn to associate a neutral stimulus with a response.',
-            'Dogs only salivate when they see food.',
-            'Bells are harmful to dogs.',
-            'Food is the only effective reward.',
-        ])
-
-        q10 = Question.objects.create(
-            item=lec3,
-            text='According to the professor, where has classical conditioning been applied?',
-            question_type='detail',
-            score_weight=1,
-            order=2,
-            explanation='The professor says the principle has been used in advertising, education, and therapy.',
-        )
-        add_options(q10, 'D', [
-            'Only in laboratory settings.',
-            'Only with animals.',
-            'Only in Russia.',
-            'In advertising, education, and therapy.',
-        ])
-
-        # Update total_items via signal (or manually)
-        for t in [t1, t2, t3, t4, t5]:
-            t.total_items = t.items.count()
-            t.save(update_fields=['total_items'])
+        test.total_items = test.items.count()
+        test.save(update_fields=['total_items'])
 
         self.stdout.write(self.style.SUCCESS(
-            f'Created 5 tests, {ListeningItem.objects.count()} items, '
+            f'Created 1 test, {ListeningItem.objects.count()} lectures, '
             f'{Question.objects.count()} questions, {ChoiceOption.objects.count()} options.'
         ))
