@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 
 const SPEEDS = [1, 1.25, 1.5];
 
-export function AudioPlayer({
+export default function AudioPlayer({
   src,
   sessionId,
   logEvent,
@@ -16,6 +16,7 @@ export function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speedIndex, setSpeedIndex] = useState(0);
+  const [volume, setVolume] = useState(100); // 0-100
 
   const updateTime = useCallback(() => {
     const el = audioRef.current;
@@ -30,6 +31,13 @@ export function AudioPlayer({
     if (!el) return;
     el.playbackRate = SPEEDS[speedIndex];
   }, [speedIndex]);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.volume = volume / 100;
+    el.muted = volume === 0;
+  }, [volume]);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -66,11 +74,40 @@ export function AudioPlayer({
     if (sessionId && logEvent) logEvent(sessionId, 'replay', 1);
   };
 
-  const skip = (delta) => {
+  const skip = (e, delta) => {
+    e.preventDefault();
+    e.stopPropagation();
     const el = audioRef.current;
     if (!el) return;
-    el.currentTime = Math.max(0, Math.min(el.duration, el.currentTime + delta));
-    setCurrentTime(el.currentTime);
+    // Use Infinity when duration not yet loaded so we don't clamp to 0 and restart
+    const dur = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : Infinity;
+    const next = Math.max(0, Math.min(dur, el.currentTime + delta));
+    if (Number.isFinite(next)) {
+      el.currentTime = next;
+      setCurrentTime(next);
+    }
+  };
+
+  const setVolumeFromInput = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value)));
+    setVolume(n);
+  };
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!src) return;
+    try {
+      const res = await fetch(src, { mode: 'cors' });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = src.split('/').pop() || 'audio.mp3';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(src, '_blank');
+    }
   };
 
   const cycleSpeed = () => {
@@ -99,7 +136,7 @@ export function AudioPlayer({
 
   return (
     <>
-      <audio ref={audioRef} src={src} preload="metadata" />
+      <audio ref={audioRef} src={src} preload="auto" />
       <div className="rounded-2xl bg-[var(--color-card)] shadow-lg border-2 border-[var(--color-selected)] overflow-hidden">
         {/* Image area with overlay label */}
         <div className="relative aspect-video bg-[var(--color-surface)] overflow-hidden">
@@ -135,11 +172,26 @@ export function AudioPlayer({
           </div>
         </div>
 
-        {/* Controls: Volume | Speed 1x | Rewind 10 | Play | Forward 10 | Download */}
+        {/* Controls: Volume slider | Speed 1x | Rewind 10 | Play | Forward 10 | Download */}
         <div className="px-4 pb-4 pt-2 flex items-center justify-center gap-3 flex-wrap">
-          <button type="button" className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]" title="Volume" aria-label="Volume">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-          </button>
+          <div className="flex items-center gap-2 min-w-[100px] max-w-[120px]" title="Volume">
+            <span className="text-[var(--color-text-muted)] shrink-0" aria-hidden>
+              {volume === 0 ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9l6 6m0-6l-6 6" /></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+              )}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={volume}
+              onChange={(e) => setVolumeFromInput(e.target.value)}
+              className="w-full h-1.5 accent-[var(--color-primary)] bg-[var(--color-border)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--color-primary)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--color-primary)] [&::-moz-range-thumb]:border-0"
+              aria-label="Volume"
+            />
+          </div>
           <button
             type="button"
             onClick={cycleSpeed}
@@ -149,7 +201,7 @@ export function AudioPlayer({
           </button>
           <button
             type="button"
-            onClick={() => skip(-10)}
+            onClick={(e) => skip(e, -10)}
             className="w-12 h-12 rounded-full border-2 border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)] flex flex-col items-center justify-center gap-0"
             title="Back 10s"
           >
@@ -170,22 +222,22 @@ export function AudioPlayer({
           </button>
           <button
             type="button"
-            onClick={() => skip(10)}
+            onClick={(e) => skip(e, 10)}
             className="w-12 h-12 rounded-full border-2 border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)] flex flex-col items-center justify-center gap-0"
             title="Forward 10s"
           >
             <svg className="w-5 h-5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
             <span className="text-[10px] font-medium leading-none">10</span>
           </button>
-          <a
-            href={src}
-            download
+          <button
+            type="button"
+            onClick={handleDownload}
             className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             title="Download"
             aria-label="Download"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          </a>
+          </button>
         </div>
 
         {showContinueButton && (
